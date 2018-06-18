@@ -33,14 +33,16 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='./results', help='folder to output images and model checkpoints')
+parser.add_argument('--imagedir', default='./results', help='folder to output images')
+parser.add_argument('--modeldir', default='./results', help='folder to output model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
 print(opt)
 
 try:
-    os.makedirs(opt.outf)
+    os.makedirs(opt.modeldir)
+    os.makedirs(opt.imagedir)
 except OSError:
     pass
 
@@ -84,7 +86,7 @@ elif opt.dataset == 'cifar10':
 elif opt.dataset == 'mnist':
     dataset = dset.MNIST(root=opt.dataroot, download=True,
                             transform=transforms.Compose([
-                                transforms.Grayscale(3),
+                                transforms.Grayscale(3),  # set to 3 channels
                                 transforms.Resize(opt.imageSize),
                                 transforms.ToTensor(),
                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
@@ -93,7 +95,7 @@ elif opt.dataset == 'mnist':
 elif opt.dataset == 'emnist':
     dataset = dset.EMNIST(root=opt.dataroot, split='byclass', download=True,
                             transform=transforms.Compose([
-                                transforms.Grayscale(3),
+                                transforms.Grayscale(3),  # set to 3 channels
                                 transforms.Resize(opt.imageSize),
                                 transforms.ToTensor(),
                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
@@ -146,8 +148,8 @@ optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
 for epoch in range(opt.niter):
-    desc = '[%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
-    pbar = tqdm(dataloader, desc=desc)
+    desc = 'Epoch: %3d/%3d | Loss_D: %.2f Loss_G: %.2f | D(x): %.3f D(G(z)): %.4f/%.4f'
+    pbar = tqdm(dataloader, desc=desc, unit='batch', )
     for i, data in enumerate(pbar, 0):
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -191,16 +193,16 @@ for epoch in range(opt.niter):
         if i % 100 == 0:
             vutils.save_image(
                 real_cpu,
-                '%s/%s_real_samples.png' % (opt.outf, opt.dataset),
+                '%s/%s_real_samples.png' % (opt.imagedir, opt.dataset),
                 normalize=True
             )
             fake = netG(fixed_noise)
             vutils.save_image(
                 fake.detach(),
-                '%s/%s_gen_samples_epoch_%03d.png' % (opt.outf, opt.dataset, epoch),
+                '%s/%s_gen_samples_epoch_%03d.png' % (opt.imagedir, opt.dataset, epoch),
                 normalize=True
             )
 
     # do checkpointing
-    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
-    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.modeldir, epoch))
+    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.modeldir, epoch))
