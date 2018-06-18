@@ -18,7 +18,7 @@ from models import Generator, Discriminator
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', required=True, help='cifar10 | lsun | imagenet | folder | lfw | fake')
+parser.add_argument('--dataset', required=True, help='mnist | emnist | cifar10 | lsun | imagenet | folder | lfw | fake')
 parser.add_argument('--dataroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
@@ -33,7 +33,7 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='.', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='./results', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
@@ -185,15 +185,21 @@ for epoch in range(opt.niter):
         D_G_z2 = output.mean().item()
         optimizerG.step()
 
-        pbar.set_description(desc % (epoch+1, opt.niter, errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+        pbar.set_description(desc %
+            (epoch+1, opt.niter, errD.item(), errG.item(), D_x, D_G_z1, D_G_z2)
+            )
         if i % 100 == 0:
-            vutils.save_image(real_cpu,
-                    '%s/real_samples.png' % opt.outf,
-                    normalize=True)
+            vutils.save_image(
+                real_cpu,
+                '%s/%s_real_samples.png' % (opt.outf, opt.dataset),
+                normalize=True
+            )
             fake = netG(fixed_noise)
-            vutils.save_image(fake.detach(),
-                    '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
-                    normalize=True)
+            vutils.save_image(
+                fake.detach(),
+                '%s/%s_gen_samples_epoch_%03d.png' % (opt.outf, opt.dataset, epoch),
+                normalize=True
+            )
 
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
